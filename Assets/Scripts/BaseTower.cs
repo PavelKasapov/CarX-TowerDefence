@@ -71,10 +71,16 @@ public abstract class BaseTower<T> : MonoBehaviour where T : BaseProjectile
     {
         while (true)
         {
-            if (m_currentTarget != null)
+            if (m_currentTarget != null && CanShoot())
+            {
                 Shoot();
+                yield return new WaitForSeconds(m_shootInterval);
+            }    
+            else
+            {
+                yield return null;
+            }
             
-            yield return new WaitForSeconds(m_shootInterval);
         }
     }
 
