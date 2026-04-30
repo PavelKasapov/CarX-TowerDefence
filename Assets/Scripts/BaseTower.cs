@@ -5,7 +5,8 @@ using UnityEngine;
 
 public abstract class BaseTower<T> : MonoBehaviour where T : BaseProjectile
 {
-	[SerializeField] private SphereCollider m_rangeCollider;
+    [SerializeField] private ProjectileManager m_projectileManager;
+    [SerializeField] private SphereCollider m_rangeCollider;
 	[SerializeField] protected float m_shootInterval = 0.5f;
     [SerializeField] protected float m_range = 4f;
     [SerializeField] protected T m_projectilePrefab;
@@ -89,8 +90,9 @@ public abstract class BaseTower<T> : MonoBehaviour where T : BaseProjectile
 
     protected virtual T Shoot()
     {
-        Debug.Log("SHOOOOOOOOT!!!!");
-        T projectile = Instantiate(m_projectilePrefab, m_shootPoint.position, m_shootPoint.rotation);
+        T projectile = m_projectileManager.Get<T>();
+        projectile.transform.position = m_shootPoint.position;
+        projectile.transform.rotation = m_shootPoint.rotation;
         return projectile;
     }
 }
