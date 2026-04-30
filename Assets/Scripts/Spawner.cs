@@ -1,25 +1,51 @@
-﻿using UnityEngine;
-using System.Collections;
+﻿using System.Collections;
+using UnityEngine;
+using UnityEngine.Pool;
 
 public class Spawner : MonoBehaviour
 {
-	public float m_interval = 0.1f;
-	public GameObject m_moveTarget;
+	[SerializeField] private Monster m_monsterPrefab;
+	[SerializeField] private Transform m_moveTarget;
+    [SerializeField] private float m_interval = 3f;
 
-	private float m_lastSpawn = -1;
+	private ObjectPool<Monster> m_monstersPool;
+	private Transform m_transform;
 
-	void Update()
+    private void Awake()
+    {
+		m_transform = transform;
+		m_monstersPool = new(
+			() => 
+			{
+				var newMonster = Instantiate(m_monsterPrefab, m_transform.position, Quaternion.identity);
+				newMonster.m_OnDespawn += m_monstersPool.Release;
+				return newMonster;
+            },
+			monster =>
+			{
+				monster.gameObject.SetActive(true);
+				monster.transform.position = m_transform.position;
+			},
+			monster =>
+			{
+				monster.gameObject.SetActive(false);
+			},
+			defaultCapacity: 5, maxSize: 20);
+
+    }
+
+    private void Start()
+    {
+		StartCoroutine(SpawnRoutine());
+    }
+
+    private IEnumerator SpawnRoutine()
 	{
-		if (Time.time > m_lastSpawn + m_interval)
+		while (true) 
 		{
-			var newMonster = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-			var r = newMonster.AddComponent<Rigidbody>();
-			r.useGravity = false;
-			newMonster.transform.position = transform.position;
-			var monsterBeh = newMonster.AddComponent<Monster>();
-			monsterBeh.m_moveTarget = m_moveTarget;
-
-			m_lastSpawn = Time.time;
-		}
+            var newMonster = m_monstersPool.Get();
+            newMonster.m_moveTarget = m_moveTarget;
+			yield return new WaitForSeconds(m_interval);
+        }
 	}
 }

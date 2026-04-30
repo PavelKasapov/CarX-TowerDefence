@@ -1,37 +1,63 @@
-﻿using UnityEngine;
+﻿using System;
 using System.Collections;
+using UnityEngine;
 
 public class Monster : MonoBehaviour
 {
-	public GameObject m_moveTarget;
-	public float m_speed = 0.1f;
-	public int m_maxHP = 30;
-	const float m_reachDistance = 0.3f;
+    const float m_reachDistance = 0.3f;
+    
+    [SerializeField] private float m_speed = 6f;
+    [SerializeField] private int m_maxHP = 30;
+    
+    private int m_hp;
+    private Transform m_transform;
+    private Coroutine m_moveRoutine;
 
-	public int m_hp;
+    public Transform m_moveTarget;
+	public Action<Monster> m_OnDespawn {  get; set; }
+    public float m_Speed => m_speed;
+    public Transform m_Transform => m_transform;
 
-	void Start()
+    private void Awake()
+    {
+        m_transform = transform;
+    }
+
+    public void TakeDamage(int damage)
 	{
-		m_hp = m_maxHP;
-	}
-
-	void Update()
-	{
-		if (m_moveTarget == null)
-			return;
-
-		if (Vector3.Distance(transform.position, m_moveTarget.transform.position) <= m_reachDistance)
+        m_hp -= damage;
+		if (m_hp <= 0)
 		{
-			Destroy(gameObject);
-			return;
-		}
+			m_OnDespawn?.Invoke(this);
+        }
+    }
 
-		var translation = m_moveTarget.transform.position - transform.position;
-		if (translation.magnitude > m_speed)
+    private void OnEnable()
+    {
+        m_hp = m_maxHP;
+        m_moveRoutine = StartCoroutine(MovementRoutine());
+        
+    }
+
+    private void OnDisable()
+    {
+        if (m_moveRoutine != null)
+            StopCoroutine(m_moveRoutine);
+
+        m_moveRoutine = null;
+    }
+
+    private IEnumerator MovementRoutine()
+    {
+        yield return null;
+
+        m_transform.LookAt(m_moveTarget);
+        while (m_moveTarget != null && Vector3.Distance(m_transform.position, m_moveTarget.position) > m_reachDistance)
 		{
-			translation = translation.normalized * m_speed;
-		}
-
-		transform.Translate(translation);
-	}
+            Vector3 newPosition = Vector3.MoveTowards(m_transform.position, m_moveTarget.position, m_speed * Time.deltaTime);
+            m_transform.position = newPosition;
+            yield return null;
+        }		
+        m_OnDespawn?.Invoke(this);
+    }
 }
