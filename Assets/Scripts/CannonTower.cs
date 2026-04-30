@@ -5,6 +5,7 @@ public class CannonTower : BaseTower<CannonProjectile>
 {
     [SerializeField] private float m_rotationSpeed = 15f;
     private Quaternion m_aimRotation;
+    private Quaternion m_baseRotation;
 #if UNITY_EDITOR
     private Vector3 debug_aimpoint;
 #endif
@@ -22,10 +23,9 @@ public class CannonTower : BaseTower<CannonProjectile>
 
     private void CalculateRotation()
     {
-        Debug.Log(m_currentTarget);
         if (m_currentTarget == null)
-        { 
-            m_aimRotation = m_transform.rotation;
+        {
+            m_aimRotation = m_baseRotation;
             return;
         } 
 
@@ -35,10 +35,11 @@ public class CannonTower : BaseTower<CannonProjectile>
         Vector3 targetVel = m_currentTarget.m_Transform.forward * m_currentTarget.m_Speed;
         Debug.Log($"{m_currentTarget.m_Transform.position} {m_currentTarget.m_Transform.position + m_currentTarget.m_Transform.forward * m_currentTarget.m_Speed}");
 
-        float t = Vector3.Distance(towerPos, targetPos) / projectileSpeed;
-        Vector3 predictedPos = targetPos + targetVel * t;
+        float totalTime = Vector3.Distance(towerPos, targetPos) / projectileSpeed;
+        Vector3 predictedPos = targetPos + targetVel * totalTime;
+        float epsilon = 0.1f;
 
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < 30; i++)
         {
             float distance = Vector3.Distance(towerPos, predictedPos);
             if (distance > m_range)
@@ -53,10 +54,18 @@ public class CannonTower : BaseTower<CannonProjectile>
             Vector3 toPredicted = predictedPos - towerPos;
             float angle = Vector3.Angle(m_transform.forward, toPredicted);
             float rotationTime = angle / m_rotationSpeed;
+            float newTotalTime = flightTime + Mathf.Max(rotationTime, isReloading ? m_shootInterval : 0);
+            Vector3 newPredictedPos = targetPos + targetVel * newTotalTime;
 
-            t = flightTime + Mathf.Max(rotationTime, m_shootInterval);
+            if (Vector3.Distance(newPredictedPos, predictedPos) < epsilon && Mathf.Abs(newTotalTime - totalTime) < epsilon)
+            {
+                Debug.Log($"Calculation done on {i} inetation {Vector3.Distance(newPredictedPos, predictedPos) < epsilon} {Mathf.Abs(newTotalTime - totalTime) < epsilon}");
+                break;
+            }
 
-            predictedPos = targetPos + targetVel * t;
+            predictedPos = newPredictedPos;
+            totalTime = newTotalTime;
+
 #if UNITY_EDITOR
             debug_aimpoint = predictedPos;
             Debug.Log(predictedPos);
@@ -66,6 +75,9 @@ public class CannonTower : BaseTower<CannonProjectile>
         Vector3 aimPoint = predictedPos;
         Vector3 direction = aimPoint - towerPos;
         m_aimRotation = Quaternion.LookRotation(direction);
+
+        if (m_baseRotation.Equals(default))
+            m_baseRotation = m_aimRotation;
     }
 
     protected override CannonProjectile Shoot()
@@ -77,22 +89,20 @@ public class CannonTower : BaseTower<CannonProjectile>
 
     protected override bool CanShoot()
     {
-        Debug.Log(Quaternion.Angle(m_transform.rotation, m_aimRotation) < 0.1f);
-        return Quaternion.Angle(m_transform.rotation, m_aimRotation) < 0.1f;
+        
+        return base.CanShoot() && Quaternion.Angle(m_transform.rotation, m_aimRotation) < 0.1f;
     }
     IEnumerator RotationRoutine()
     {
         while (true)
         {
             /*CalculateRotation();*/
-            if (m_currentTarget != null)
-            {
-                m_transform.rotation = Quaternion.RotateTowards(
-                    m_transform.rotation,
-                    m_aimRotation,
-                    m_rotationSpeed * Time.deltaTime
-                    );
-            }
+            
+            m_transform.rotation = Quaternion.RotateTowards(
+                m_transform.rotation,
+                m_aimRotation,
+                m_rotationSpeed * Time.deltaTime
+                );
 
             yield return null;
         }
@@ -105,7 +115,8 @@ public class CannonTower : BaseTower<CannonProjectile>
         {
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(debug_aimpoint, 0.4f);
-            Gizmos.DrawWireSphere(m_currentTarget.m_Transform.position, 1f);
+            if (m_currentTarget != null)
+                Gizmos.DrawWireSphere(m_currentTarget.m_Transform.position, 1f);
         }
     }
 #endif

@@ -17,14 +17,14 @@ public class Spawner : MonoBehaviour
 		m_monstersPool = new(
 			() => 
 			{
-				var newMonster = Instantiate(m_monsterPrefab, m_transform.position, Quaternion.identity);
+				var newMonster = Instantiate(m_monsterPrefab, m_transform.position, Quaternion.LookRotation(m_moveTarget.position - m_transform.position));
 				newMonster.m_OnDespawn += m_monstersPool.Release;
 				return newMonster;
             },
 			monster =>
 			{
-				monster.gameObject.SetActive(true);
 				monster.transform.position = m_transform.position;
+				monster.gameObject.SetActive(true);
 			},
 			monster =>
 			{

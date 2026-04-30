@@ -14,7 +14,8 @@ public abstract class BaseTower<T> : MonoBehaviour where T : BaseProjectile
     protected Monster m_currentTarget;
     protected Transform m_transform;
     protected List<Monster> m_monstersInRange = new();
-    protected virtual bool CanShoot() => true;
+    protected bool isReloading;
+    protected virtual bool CanShoot() => m_currentTarget != null;
     protected virtual void Awake()
     {
         m_transform = transform;
@@ -71,10 +72,12 @@ public abstract class BaseTower<T> : MonoBehaviour where T : BaseProjectile
     {
         while (true)
         {
-            if (m_currentTarget != null && CanShoot())
+            if (CanShoot())
             {
+                isReloading = true;
                 Shoot();
                 yield return new WaitForSeconds(m_shootInterval);
+                isReloading = false;
             }    
             else
             {
