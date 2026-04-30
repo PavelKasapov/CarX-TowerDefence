@@ -89,6 +89,7 @@ public abstract class BaseTower<T> : MonoBehaviour where T : BaseProjectile
 
     protected virtual T Shoot()
     {
+        Debug.Log("SHOOOOOOOOT!!!!");
         T projectile = Instantiate(m_projectilePrefab, m_shootPoint.position, m_shootPoint.rotation);
         return projectile;
     }

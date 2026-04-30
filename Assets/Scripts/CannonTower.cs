@@ -3,12 +3,12 @@ using UnityEngine;
 
 public class CannonTower : BaseTower<CannonProjectile>
 {
-    [SerializeField] private float m_rotationSpeed = 15f;
-    private Quaternion m_aimRotation;
-    private Quaternion m_baseRotation;
-#if UNITY_EDITOR
-    private Vector3 debug_aimpoint;
-#endif
+    [SerializeField] private Transform m_gunTransform;
+    [SerializeField] private float m_yawSpeed = 30f;
+    [SerializeField] private float m_pitchSpeed = 30f;
+
+    private Vector3 m_baseAimPosition;
+    private Vector3 m_predictedPosition;
     protected override void Awake()
     {
         base.Awake();
@@ -25,15 +25,14 @@ public class CannonTower : BaseTower<CannonProjectile>
     {
         if (m_currentTarget == null)
         {
-            m_aimRotation = m_baseRotation;
+            m_predictedPosition = m_baseAimPosition;
             return;
-        } 
+        }
 
         float projectileSpeed = m_projectilePrefab.m_Speed;
         Vector3 towerPos = m_shootPoint.position;
         Vector3 targetPos = m_currentTarget.m_Transform.position;
         Vector3 targetVel = m_currentTarget.m_Transform.forward * m_currentTarget.m_Speed;
-        Debug.Log($"{m_currentTarget.m_Transform.position} {m_currentTarget.m_Transform.position + m_currentTarget.m_Transform.forward * m_currentTarget.m_Speed}");
 
         float totalTime = Vector3.Distance(towerPos, targetPos) / projectileSpeed;
         Vector3 predictedPos = targetPos + targetVel * totalTime;
@@ -50,34 +49,32 @@ public class CannonTower : BaseTower<CannonProjectile>
             }
 
             float flightTime = distance / projectileSpeed;
+            float rotationTime = CalculateRotationTime(predictedPos);
 
-            Vector3 toPredicted = predictedPos - towerPos;
-            float angle = Vector3.Angle(m_transform.forward, toPredicted);
-            float rotationTime = angle / m_rotationSpeed;
-            float newTotalTime = flightTime + Mathf.Max(rotationTime, isReloading ? m_shootInterval : 0);
+            float reloadTime = isReloading ? m_shootInterval : 0;
+            float newTotalTime = flightTime + Mathf.Max(rotationTime, reloadTime);
             Vector3 newPredictedPos = targetPos + targetVel * newTotalTime;
+
+#if UNITY_EDITOR
+            Debug.DrawLine(predictedPos, predictedPos + Vector3.up * (i+1) / 10, Color.cyan, 5f);
+#endif
 
             if (Vector3.Distance(newPredictedPos, predictedPos) < epsilon && Mathf.Abs(newTotalTime - totalTime) < epsilon)
             {
-                Debug.Log($"Calculation done on {i} inetation {Vector3.Distance(newPredictedPos, predictedPos) < epsilon} {Mathf.Abs(newTotalTime - totalTime) < epsilon}");
+                predictedPos = newPredictedPos;
+
+                Debug.Log($"Calculation done on {i+1} inetation {Vector3.Distance(newPredictedPos, predictedPos) < epsilon} {Mathf.Abs(newTotalTime - totalTime) < epsilon}");
                 break;
             }
 
             predictedPos = newPredictedPos;
             totalTime = newTotalTime;
-
-#if UNITY_EDITOR
-            debug_aimpoint = predictedPos;
-            Debug.Log(predictedPos);
-#endif
         }
 
-        Vector3 aimPoint = predictedPos;
-        Vector3 direction = aimPoint - towerPos;
-        m_aimRotation = Quaternion.LookRotation(direction);
+         m_predictedPosition = predictedPos;
 
-        if (m_baseRotation.Equals(default))
-            m_baseRotation = m_aimRotation;
+        if (m_baseAimPosition.Equals(default))
+            m_baseAimPosition = m_predictedPosition;
     }
 
     protected override CannonProjectile Shoot()
@@ -89,35 +86,61 @@ public class CannonTower : BaseTower<CannonProjectile>
 
     protected override bool CanShoot()
     {
-        
-        return base.CanShoot() && Quaternion.Angle(m_transform.rotation, m_aimRotation) < 0.1f;
+#if UNITY_EDITOR
+        Debug.DrawLine(m_predictedPosition, m_shootPoint.position, Color.green, 0.01f);
+        Debug.DrawLine(m_shootPoint.position, m_shootPoint.position + m_shootPoint.forward * 10, Color.red, 0.01f);
+#endif
+        return base.CanShoot() && Vector3.Angle(m_predictedPosition - m_shootPoint.position, m_shootPoint.forward) < 0.5f;
     }
     IEnumerator RotationRoutine()
     {
         while (true)
         {
-            /*CalculateRotation();*/
-            
-            m_transform.rotation = Quaternion.RotateTowards(
-                m_transform.rotation,
-                m_aimRotation,
-                m_rotationSpeed * Time.deltaTime
-                );
+            Vector3 toAimFlat = m_predictedPosition - m_transform.position;
+            toAimFlat.y = 0;
+            if (toAimFlat != Vector3.zero)
+            {
+                Quaternion targetYaw = Quaternion.LookRotation(toAimFlat);
+                m_transform.rotation = Quaternion.RotateTowards(m_transform.rotation, targetYaw, m_yawSpeed * Time.deltaTime);
+            }
+
+            Vector3 toAim = m_predictedPosition - m_gunTransform.position;
+            Vector3 localDir = m_transform.InverseTransformDirection(toAim);
+            float targetPitch = Mathf.Atan2(localDir.y, Mathf.Sqrt(localDir.x * localDir.x + localDir.z * localDir.z)) * Mathf.Rad2Deg;
+            Quaternion targetPitchRot = Quaternion.Euler(-targetPitch, 0, 0);
+            m_gunTransform.localRotation = Quaternion.RotateTowards(m_gunTransform.localRotation, targetPitchRot, m_pitchSpeed * Time.deltaTime);
 
             yield return null;
         }
     }
 
-#if UNITY_EDITOR
-    private void OnDrawGizmosSelected()
+    private float CalculateRotationTime(Vector3 aimPoint)
     {
-        if (debug_aimpoint != Vector3.zero)
+        Vector3 toTargetFlat = aimPoint - m_transform.position;
+        toTargetFlat.y = 0;
+        float targetYawAngle = Vector3.SignedAngle(m_transform.forward, toTargetFlat, Vector3.up);
+        float rotationTimeYaw = Mathf.Abs(targetYawAngle) / m_yawSpeed;
+
+        Vector3 toTarget = aimPoint - m_gunTransform.position;
+        Vector3 localDir = m_transform.InverseTransformDirection(toTarget);
+        float targetPitchAngle = Mathf.Atan2(localDir.y, Mathf.Sqrt(localDir.x * localDir.x + localDir.z * localDir.z)) * Mathf.Rad2Deg;
+        float deltaPitch = Vector3.SignedAngle(m_gunTransform.forward, toTarget, m_gunTransform.right);
+        float rotationTimePitch = Mathf.Abs(deltaPitch) / m_pitchSpeed;
+
+        return Mathf.Max(rotationTimeYaw, rotationTimePitch);
+    }
+
+#if UNITY_EDITOR
+    private void OnDrawGizmos()
+    {
+        if (m_predictedPosition != Vector3.zero)
         {
             Gizmos.color = Color.red;
-            Gizmos.DrawWireSphere(debug_aimpoint, 0.4f);
+            Gizmos.DrawWireSphere(m_predictedPosition, 0.4f);
             if (m_currentTarget != null)
                 Gizmos.DrawWireSphere(m_currentTarget.m_Transform.position, 1f);
         }
+
     }
 #endif
 }
