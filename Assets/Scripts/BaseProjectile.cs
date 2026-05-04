@@ -21,7 +21,7 @@ public abstract class BaseProjectile : MonoBehaviour
         };
     }
 
-    private void OnEnable()
+    protected virtual void OnEnable()
     {
         m_moveRoutine = StartCoroutine(MovingRoutine());
         m_lifeTimerRoutine = StartCoroutine(LifeTimer());
@@ -50,7 +50,6 @@ public abstract class BaseProjectile : MonoBehaviour
 
     protected abstract void Move();
   
-
     void OnTriggerEnter(Collider other)
     {
         var monster = other.gameObject.GetComponent<Monster>();

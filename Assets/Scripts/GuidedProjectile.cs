@@ -2,7 +2,12 @@
 
 public class GuidedProjectile : BaseProjectile
 {
-    public Transform m_target;
+    private Transform m_target;
+
+    public void Init(Transform target)
+    {
+        m_target = target;
+    }
     protected override void Move()
     {
         if (m_target == null)
