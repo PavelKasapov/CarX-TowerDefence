@@ -36,7 +36,6 @@ public class Monster : MonoBehaviour
     {
         m_hp = m_maxHP;
         m_moveRoutine = StartCoroutine(MovementRoutine());
-        
     }
 
     private void OnDisable()

@@ -21,7 +21,7 @@ public abstract class BaseProjectile : MonoBehaviour
         };
     }
 
-    protected virtual void OnEnable()
+    private void OnEnable()
     {
         m_moveRoutine = StartCoroutine(MovingRoutine());
         m_lifeTimerRoutine = StartCoroutine(LifeTimer());

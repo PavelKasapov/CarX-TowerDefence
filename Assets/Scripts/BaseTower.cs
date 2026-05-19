@@ -1,6 +1,5 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 public abstract class BaseTower<T> : MonoBehaviour where T : BaseProjectile
@@ -15,7 +14,7 @@ public abstract class BaseTower<T> : MonoBehaviour where T : BaseProjectile
     protected Monster m_currentTarget;
     protected Transform m_transform;
     protected List<Monster> m_monstersInRange = new();
-    protected bool isReloading;
+    protected bool m_isReloading;
     protected virtual bool CanShoot() => m_currentTarget != null;
     protected virtual void Awake()
     {
@@ -57,16 +56,18 @@ public abstract class BaseTower<T> : MonoBehaviour where T : BaseProjectile
 
     protected virtual void TargetChange()
     {
-        if (m_monstersInRange.Count == 0)
+        Monster closestMonster = null;
+        float minDistance = float.MaxValue;
+        foreach (var monster in m_monstersInRange)
         {
-            m_currentTarget = null;
-            return;
+            float distance = (monster.m_Transform.position - m_transform.position).sqrMagnitude;
+            if (distance < minDistance)
+            {
+                minDistance = distance;
+                closestMonster = monster;
+            }
         }
-
-        m_currentTarget = m_monstersInRange
-            .Aggregate((closest, next) =>
-            (m_transform.position - next.m_Transform.position).sqrMagnitude <
-            (m_transform.position - closest.m_Transform.position).sqrMagnitude ? next : closest);
+        m_currentTarget = closestMonster;
     }
 
     private IEnumerator ShootingRoutine()
@@ -75,10 +76,10 @@ public abstract class BaseTower<T> : MonoBehaviour where T : BaseProjectile
         {
             if (CanShoot())
             {
-                isReloading = true;
+                m_isReloading = true;
                 Shoot();
                 yield return new WaitForSeconds(m_shootInterval);
-                isReloading = false;
+                m_isReloading = false;
             }    
             else
             {

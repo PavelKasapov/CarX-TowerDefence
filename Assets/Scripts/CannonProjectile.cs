@@ -9,11 +9,6 @@ public class CannonProjectile : BaseProjectile
         m_velocity = velocity;
     }
 
-    protected override void OnEnable()
-    {
-        base.OnEnable();
-        m_velocity = m_transform.forward * m_speed;
-    }
     protected override void Move()
     {
         m_velocity += Physics.gravity * Time.deltaTime;

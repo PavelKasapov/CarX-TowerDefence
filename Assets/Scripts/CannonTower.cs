@@ -66,7 +66,7 @@ public class CannonTower : BaseTower<CannonProjectile>
             
             float rotationTime = CalculateRotationTime(launchVel);
 
-            float reloadTime = isReloading ? m_shootInterval : 0;
+            float reloadTime = m_isReloading ? m_shootInterval : 0;
             preparingTime = Mathf.Max(rotationTime, reloadTime);
             float newTotalTime = flightTime + preparingTime;
             Vector3 newPredictedPos = targetPos + targetVel * newTotalTime;
