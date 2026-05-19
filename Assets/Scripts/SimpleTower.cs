@@ -3,7 +3,7 @@
     protected override GuidedProjectile Shoot()
     {
         var projectile = base.Shoot();
-        projectile.Init(m_currentTarget.m_Transform);
+        projectile.Init(m_targetTracker.CurrentTarget.m_Transform);
         return projectile;
     }
 }

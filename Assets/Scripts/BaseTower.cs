@@ -1,73 +1,23 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UIElements;
 
+[RequireComponent(typeof(TargetTracker))]
 public abstract class BaseTower<T> : MonoBehaviour where T : BaseProjectile
 {
     [SerializeField] private ProjectileManager m_projectileManager;
-    [SerializeField] private SphereCollider m_rangeCollider;
 	[SerializeField] protected float m_shootInterval = 0.5f;
-    [SerializeField] protected float m_range = 4f;
     [SerializeField] protected T m_projectilePrefab;
     [SerializeField] protected Transform m_shootPoint;
-
-    protected Monster m_currentTarget;
+    [SerializeField] protected TargetTracker m_targetTracker;
     protected Transform m_transform;
-    protected List<Monster> m_monstersInRange = new();
     protected bool m_isReloading;
-    protected virtual bool CanShoot() => m_currentTarget != null;
+    protected virtual bool CanShoot() => m_targetTracker.CurrentTarget != null;
     protected virtual void Awake()
     {
+        m_targetTracker ??= GetComponent<TargetTracker>();
         m_transform = transform;
-        m_rangeCollider.radius = m_range;
         StartCoroutine(ShootingRoutine());
-    }
-    private void OnTriggerEnter(Collider other)
-    {
-        var monster = other.GetComponent<Monster>();
-        if (monster != null && !m_monstersInRange.Contains(monster))
-        {
-            m_monstersInRange.Add(monster);
-            monster.m_OnDespawn += OnEnemyLost;
-        }
-        if (m_currentTarget == null)
-            TargetChange();
-    }
-    private void OnTriggerExit(Collider other)
-    {
-        var monster = other.GetComponent<Monster>();
-        if (monster != null)
-        {
-            OnEnemyLost(monster);
-        }
-    }
-
-    private void OnEnemyLost(Monster monster)
-    {
-        if (m_monstersInRange.Contains(monster))
-        {
-            m_monstersInRange.Remove(monster);
-            monster.m_OnDespawn -= OnEnemyLost;
-        }
-
-        if (m_currentTarget == monster)
-            TargetChange();
-    }
-
-    protected virtual void TargetChange()
-    {
-        Monster closestMonster = null;
-        float minDistance = float.MaxValue;
-        foreach (var monster in m_monstersInRange)
-        {
-            float distance = (monster.m_Transform.position - m_transform.position).sqrMagnitude;
-            if (distance < minDistance)
-            {
-                minDistance = distance;
-                closestMonster = monster;
-            }
-        }
-        m_currentTarget = closestMonster;
     }
 
     private IEnumerator ShootingRoutine()
@@ -85,7 +35,6 @@ public abstract class BaseTower<T> : MonoBehaviour where T : BaseProjectile
             {
                 yield return null;
             }
-            
         }
     }
 

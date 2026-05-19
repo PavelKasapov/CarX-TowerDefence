@@ -19,17 +19,12 @@ public class CannonTower : BaseTower<CannonProjectile>
     {
         base.Awake();
         StartCoroutine(RotationRoutine());
-    }
-
-    protected override void TargetChange()
-    {
-        base.TargetChange();
-        CalculateRotation();
+        m_targetTracker.OnTargetChange += CalculateRotation;
     }
 
     private void CalculateRotation()
     {
-        if (m_currentTarget == null)
+        if (m_targetTracker.CurrentTarget == null)
         {
             m_actualYawSpeed = m_yawSpeed;
             m_actualPitchSpeed = m_pitchSpeed;
@@ -39,8 +34,8 @@ public class CannonTower : BaseTower<CannonProjectile>
 
         float projectileSpeed = m_projectilePrefab.m_Speed;
         Vector3 towerPos = m_shootPoint.position;
-        Vector3 targetPos = m_currentTarget.m_Transform.position;
-        Vector3 targetVel = m_currentTarget.m_Transform.forward * m_currentTarget.m_Speed;
+        Vector3 targetPos = m_targetTracker.CurrentTarget.m_Transform.position;
+        Vector3 targetVel = m_targetTracker.CurrentTarget.m_Transform.forward * m_targetTracker.CurrentTarget.m_Speed;
 
         float totalTime = Vector3.Distance(towerPos, targetPos) / projectileSpeed;
         Vector3 predictedPos = targetPos + targetVel * totalTime;
@@ -53,14 +48,13 @@ public class CannonTower : BaseTower<CannonProjectile>
         {
             float distance = Vector3.Distance(towerPos, predictedPos);
 
-            if (distance < m_range && GetBallisticVelocity(towerPos, predictedPos, projectileSpeed, Physics.gravity, out launchVel, out float ballisticTime))
+            if (distance < m_targetTracker.m_Range && GetBallisticVelocity(towerPos, predictedPos, projectileSpeed, Physics.gravity, out launchVel, out float ballisticTime))
             {
                 flightTime = ballisticTime;
             }
             else
             {
-                m_monstersInRange.Remove(m_currentTarget);
-                TargetChange();
+                m_targetTracker.InvalidateTarget(m_targetTracker.CurrentTarget);
                 return;
             }
             
@@ -79,7 +73,7 @@ public class CannonTower : BaseTower<CannonProjectile>
             if (Vector3.Distance(newPredictedPos, predictedPos) < epsilon && Mathf.Abs(newTotalTime - totalTime) < epsilon)
             {
                 m_launchDirection = launchVel;
-                Debug.Log($"Calculation done on {i+1} inetation {Vector3.Distance(newPredictedPos, predictedPos) < epsilon} {Mathf.Abs(newTotalTime - totalTime) < epsilon}");
+                Debug.Log($"Calculation done on {i+1} iteration {Vector3.Distance(newPredictedPos, predictedPos) < epsilon} {Mathf.Abs(newTotalTime - totalTime) < epsilon}");
                 break;
             }
 
@@ -207,8 +201,8 @@ public class CannonTower : BaseTower<CannonProjectile>
         {
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(debug_predictedPos, 0.4f);
-            if (m_currentTarget != null)
-                Gizmos.DrawWireSphere(m_currentTarget.m_Transform.position, 1f);
+            if (m_targetTracker.CurrentTarget != null)
+                Gizmos.DrawWireSphere(m_targetTracker.CurrentTarget.m_Transform.position, 1f);
         }
 
     }
