@@ -1,14 +1,10 @@
-﻿using System.Collections;
-using UnityEngine;
+﻿using UnityEngine;
 
+[RequireComponent(typeof(TurretRotation))]
 public class CannonTower : BaseTower<CannonProjectile>
 {
+    [SerializeField] private TurretRotation m_turretRotation;
     [SerializeField] private Transform m_gunTransform;
-    [SerializeField] private float m_yawSpeed = 30f;
-    [SerializeField] private float m_pitchSpeed = 30f;
-
-    private float m_actualYawSpeed;
-    private float m_actualPitchSpeed;
 
     private Vector3 m_baseAimPosition;
     private Vector3 m_launchDirection;
@@ -18,7 +14,7 @@ public class CannonTower : BaseTower<CannonProjectile>
     protected override void Awake()
     {
         base.Awake();
-        StartCoroutine(RotationRoutine());
+        m_turretRotation ??= GetComponent<TurretRotation>();
         m_targetTracker.OnTargetChange += CalculateRotation;
     }
 
@@ -26,9 +22,7 @@ public class CannonTower : BaseTower<CannonProjectile>
     {
         if (m_targetTracker.CurrentTarget == null)
         {
-            m_actualYawSpeed = m_yawSpeed;
-            m_actualPitchSpeed = m_pitchSpeed;
-            m_launchDirection = m_baseAimPosition;
+            m_turretRotation.RotateToDirection(m_baseAimPosition);
             return;
         }
 
@@ -81,7 +75,7 @@ public class CannonTower : BaseTower<CannonProjectile>
             totalTime = newTotalTime;
         }
         m_launchDirection = launchVel;
-        AdjustRotationSpeed(preparingTime);
+        m_turretRotation.RotateToDirection(launchVel, preparingTime);
 
         if (m_baseAimPosition.Equals(default))
             m_baseAimPosition = m_launchDirection;
@@ -98,35 +92,7 @@ public class CannonTower : BaseTower<CannonProjectile>
 
     protected override bool CanShoot()
     {
-        return base.CanShoot() && Vector3.Angle(m_launchDirection, m_shootPoint.forward) < 0.1f;
-    }
-
-
-    IEnumerator RotationRoutine()
-    {
-        while (true)
-        {
-#if UNITY_EDITOR
-            Debug.DrawLine( m_shootPoint.position, m_shootPoint.position + m_launchDirection, Color.green, 0.01f);
-            Debug.DrawLine(m_shootPoint.position, m_shootPoint.position + m_shootPoint.forward * 10, Color.red, 0.01f);
-#endif
-
-            Vector3 toAimFlat = m_launchDirection;
-            toAimFlat.y = 0;
-            if (toAimFlat != Vector3.zero)
-            {
-                Quaternion targetYaw = Quaternion.LookRotation(toAimFlat);
-                m_transform.rotation = Quaternion.RotateTowards(m_transform.rotation, targetYaw, m_actualYawSpeed * Time.deltaTime);
-            }
-
-            Vector3 toAim = m_launchDirection;
-            Vector3 localDir = m_transform.InverseTransformDirection(toAim);
-            float targetPitch = Mathf.Atan2(localDir.y, Mathf.Sqrt(localDir.x * localDir.x + localDir.z * localDir.z)) * Mathf.Rad2Deg;
-            Quaternion targetPitchRot = Quaternion.Euler(-targetPitch, 0, 0);
-            m_gunTransform.localRotation = Quaternion.RotateTowards(m_gunTransform.localRotation, targetPitchRot, m_actualPitchSpeed * Time.deltaTime);
-
-            yield return null;
-        }
+        return base.CanShoot() && m_turretRotation.IsAimedAtLaunchDirection();
     }
 
     private float CalculateRotationTime(Vector3 aimDirection)
@@ -134,14 +100,14 @@ public class CannonTower : BaseTower<CannonProjectile>
         Vector3 toTargetFlat = aimDirection;
         toTargetFlat.y = 0;
         float targetYawAngle = Vector3.SignedAngle(m_transform.forward, toTargetFlat, Vector3.up);
-        float rotationTimeYaw = Mathf.Abs(targetYawAngle) / m_yawSpeed;
+        float rotationTimeYaw = Mathf.Abs(targetYawAngle) / m_turretRotation.MaxYawSpeed;
 
         Vector3 localDir = m_transform.InverseTransformDirection(aimDirection);
         float targetPitch = -Mathf.Atan2(localDir.y, new Vector2(localDir.x, localDir.z).magnitude) * Mathf.Rad2Deg;
         float currentPitch = m_gunTransform.localEulerAngles.x;
         if (currentPitch > 180) currentPitch -= 360;
         float deltaPitch = Mathf.DeltaAngle(currentPitch, targetPitch);
-        float rotationTimePitch = Mathf.Abs(deltaPitch) / m_pitchSpeed;
+        float rotationTimePitch = Mathf.Abs(deltaPitch) / m_turretRotation.MaxPitchSpeed;
 
         return Mathf.Max(rotationTimeYaw, rotationTimePitch);
     }
@@ -175,23 +141,6 @@ public class CannonTower : BaseTower<CannonProjectile>
         velocity = dirXZ * vXZ + Vector3.up * vy;
         flightTime = distXZ / vXZ;
         return true;
-    }
-
-    private void AdjustRotationSpeed(float preparingTime)
-    {
-        Vector3 toTargetFlat = m_launchDirection;
-        toTargetFlat.y = 0;
-        float yawAngle = Vector3.SignedAngle(m_transform.forward, toTargetFlat, Vector3.up);
-        float requiredYawSpeed = Mathf.Abs(yawAngle) / preparingTime;
-        m_actualYawSpeed = Mathf.Min(m_yawSpeed, requiredYawSpeed);
-
-        Vector3 localDir = m_transform.InverseTransformDirection(m_launchDirection);
-        float targetPitch = -Mathf.Atan2(localDir.y, new Vector2(localDir.x, localDir.z).magnitude) * Mathf.Rad2Deg;
-        float currentPitch = m_gunTransform.localEulerAngles.x;
-        if (currentPitch > 180) currentPitch -= 360;
-        float deltaPitch = Mathf.DeltaAngle(currentPitch, targetPitch);
-        float requiredPitchSpeed = Mathf.Abs(deltaPitch) / preparingTime;
-        m_actualPitchSpeed = Mathf.Min(m_pitchSpeed, requiredPitchSpeed);
     }
 
 #if UNITY_EDITOR
