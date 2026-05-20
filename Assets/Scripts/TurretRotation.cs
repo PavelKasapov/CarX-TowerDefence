@@ -1,4 +1,4 @@
-﻿using System.Collections;
+﻿using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 public class TurretRotation
@@ -23,6 +23,8 @@ public class TurretRotation
         m_gunTransform = gunTransform;
         m_maxYawSpeed = maxYawSpeed;
         m_maxPitchSpeed = maxPitchSpeed;
+
+        RotationLoop().Forget();
     }
 
     public void RotateToDirection(Vector3 launchDirection, float rotationTime = -1)
@@ -47,7 +49,7 @@ public class TurretRotation
         return Vector3.Angle(m_launchDirection, m_shootPoint.forward) < 0.1f;
     }
 
-    public IEnumerator RotationRoutine()
+    private async UniTaskVoid RotationLoop()
     {
         while (true)
         {
@@ -70,7 +72,7 @@ public class TurretRotation
             Quaternion targetPitchRot = Quaternion.Euler(-targetPitch, 0, 0);
             m_gunTransform.localRotation = Quaternion.RotateTowards(m_gunTransform.localRotation, targetPitchRot, m_actualPitchSpeed * Time.deltaTime);
 
-            yield return null;
+            await UniTask.Yield(PlayerLoopTiming.Update);
         }
     }
 

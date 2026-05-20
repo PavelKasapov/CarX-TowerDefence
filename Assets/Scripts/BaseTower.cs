@@ -1,6 +1,8 @@
-﻿using System.Collections;
+﻿using Cysharp.Threading.Tasks;
+using System;
 using UnityEngine;
 using VContainer;
+
 
 [RequireComponent(typeof(TargetTracker))]
 public abstract class BaseTower<T> : MonoBehaviour where T : BaseProjectile
@@ -25,10 +27,10 @@ public abstract class BaseTower<T> : MonoBehaviour where T : BaseProjectile
 
     protected virtual void Start()
     {
-        StartCoroutine(ShootingRoutine());
+        ShootingLoop().Forget();
     }
 
-    private IEnumerator ShootingRoutine()
+    private async UniTaskVoid ShootingLoop()
     {
         while (true)
         {
@@ -36,12 +38,12 @@ public abstract class BaseTower<T> : MonoBehaviour where T : BaseProjectile
             {
                 m_isReloading = true;
                 Shoot();
-                yield return new WaitForSeconds(m_shootInterval);
+                await UniTask.Delay(TimeSpan.FromSeconds(m_shootInterval));
                 m_isReloading = false;
-            }    
+            }
             else
             {
-                yield return null;
+                await UniTask.Yield();
             }
         }
     }

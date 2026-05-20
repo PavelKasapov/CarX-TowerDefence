@@ -18,12 +18,6 @@ public class CannonTower : BaseTower<CannonProjectile>
         m_targetTracker.OnTargetChange += PrepareForNextShot;
     }
 
-    protected override void Start()
-    {
-        StartCoroutine(m_turretRotation.RotationRoutine());
-        base.Start();
-    }
-
     private void PrepareForNextShot()
     {
         if (m_ballisticAimSolver.CalculateRotation(m_targetTracker.CurrentTarget, m_projectilePrefab.m_Speed, m_isReloading ? m_shootInterval : 0, out var launchDirection, out var preparingTime))
