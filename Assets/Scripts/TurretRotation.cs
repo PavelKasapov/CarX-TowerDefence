@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using UnityEngine;
 
-public class TurretRotation : MonoBehaviour
+public class TurretRotation
 {
     private Transform m_shootPoint;
     private Transform m_gunTransform;
@@ -15,18 +15,10 @@ public class TurretRotation : MonoBehaviour
 
     public float MaxYawSpeed => m_maxYawSpeed;
     public float MaxPitchSpeed => m_maxPitchSpeed;
-    private void Awake()
+
+    public void Init(Transform transform, Transform shootPoint, Transform gunTransform, float maxYawSpeed, float maxPitchSpeed)
     {
         m_transform = transform;
-    }
-
-    private void Start()
-    {
-        StartCoroutine(RotationRoutine());
-    }
-
-    public void Init(Transform shootPoint, Transform gunTransform, float maxYawSpeed, float maxPitchSpeed)
-    {
         m_shootPoint = shootPoint;
         m_gunTransform = gunTransform;
         m_maxYawSpeed = maxYawSpeed;
@@ -55,7 +47,7 @@ public class TurretRotation : MonoBehaviour
         return Vector3.Angle(m_launchDirection, m_shootPoint.forward) < 0.1f;
     }
 
-    IEnumerator RotationRoutine()
+    public IEnumerator RotationRoutine()
     {
         while (true)
         {

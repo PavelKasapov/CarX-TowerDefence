@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-public class BallisticAimSolver : MonoBehaviour
+public class BallisticAimSolver
 {
     private Transform m_shootPoint;
     private Transform m_gunTransform;
@@ -12,13 +12,10 @@ public class BallisticAimSolver : MonoBehaviour
 #if UNITY_EDITOR
     private Vector3 debug_predictedPos;
 #endif
-    private void Awake()
+
+    public void Init(Transform transform, Transform shootPoint, Transform gunTransform, float maxYawSpeed, float maxPitchSpeed, float maxRange)
     {
         m_transform = transform;
-    }
-
-    public void Init(Transform shootPoint, Transform gunTransform, float maxYawSpeed, float maxPitchSpeed, float maxRange)
-    {
         m_shootPoint = shootPoint;
         m_gunTransform = gunTransform;
         m_maxYawSpeed = maxYawSpeed;

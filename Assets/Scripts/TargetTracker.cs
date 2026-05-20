@@ -14,13 +14,9 @@ public class TargetTracker : MonoBehaviour
     public event Action OnTargetChange;
     public Monster CurrentTarget { get; private set; }
 
-    private void Awake()
+    public void Init(Transform transform, float range)
     {
         m_transform = transform;
-    }
-
-    public void Init(float range)
-    {
         m_range = range;
         m_rangeCollider.radius = m_range;
     }

@@ -1,11 +1,10 @@
 ﻿using UnityEngine;
+using VContainer;
 
-[RequireComponent(typeof(TurretRotation))]
-[RequireComponent(typeof(BallisticAimSolver))]
 public class CannonTower : BaseTower<CannonProjectile>
 {
-    [SerializeField] private TurretRotation m_turretRotation;
-    [SerializeField] private BallisticAimSolver m_ballisticAimSolver;
+    [Inject] private TurretRotation m_turretRotation;
+    [Inject] private BallisticAimSolver m_ballisticAimSolver;
 
     [SerializeField] private Transform m_gunTransform;
     [SerializeField] private float m_yawSpeed = 30f;
@@ -14,11 +13,15 @@ public class CannonTower : BaseTower<CannonProjectile>
     protected override void Awake()
     {
         base.Awake();
-        m_turretRotation ??= GetComponent<TurretRotation>();
-        m_ballisticAimSolver ??= GetComponent<BallisticAimSolver>();
-        m_ballisticAimSolver.Init(m_shootPoint, m_gunTransform, m_yawSpeed, m_pitchSpeed, m_range);
-        m_turretRotation.Init(m_shootPoint, m_gunTransform, m_yawSpeed, m_pitchSpeed);
+        m_ballisticAimSolver.Init(m_transform, m_shootPoint, m_gunTransform, m_yawSpeed, m_pitchSpeed, m_range);
+        m_turretRotation.Init(m_transform, m_shootPoint, m_gunTransform, m_yawSpeed, m_pitchSpeed);
         m_targetTracker.OnTargetChange += PrepareForNextShot;
+    }
+
+    protected override void Start()
+    {
+        StartCoroutine(m_turretRotation.RotationRoutine());
+        base.Start();
     }
 
     private void PrepareForNextShot()

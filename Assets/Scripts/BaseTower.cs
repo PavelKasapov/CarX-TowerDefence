@@ -1,14 +1,16 @@
 ﻿using System.Collections;
 using UnityEngine;
+using VContainer;
 
 [RequireComponent(typeof(TargetTracker))]
 public abstract class BaseTower<T> : MonoBehaviour where T : BaseProjectile
 {
-    [SerializeField] private ProjectileManager m_projectileManager;
+    [Inject] private ProjectileManager m_projectileManager;
+    [SerializeField] protected TargetTracker m_targetTracker;
+
 	[SerializeField] protected float m_shootInterval = 2f;
     [SerializeField] protected T m_projectilePrefab;
     [SerializeField] protected Transform m_shootPoint;
-    [SerializeField] protected TargetTracker m_targetTracker;
     [SerializeField] protected float m_range = 10f;
 
     protected Transform m_transform;
@@ -16,9 +18,9 @@ public abstract class BaseTower<T> : MonoBehaviour where T : BaseProjectile
     protected virtual bool CanShoot() => m_targetTracker.CurrentTarget != null;
     protected virtual void Awake()
     {
-        m_targetTracker ??= GetComponent<TargetTracker>();
         m_transform = transform;
-        m_targetTracker.Init(m_range);
+        m_targetTracker ??= GetComponent<TargetTracker>();
+        m_targetTracker.Init(m_transform, m_range);
     }
 
     protected virtual void Start()
