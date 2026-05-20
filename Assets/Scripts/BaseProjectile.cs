@@ -63,7 +63,7 @@ public abstract class BaseProjectile : MonoBehaviour
 
     private IEnumerator LifeTimer()
     {
-        yield return new WaitForSeconds(5);
+        yield return new WaitForSeconds(3f);
         m_OnDespawn?.Invoke();
     }
 }
