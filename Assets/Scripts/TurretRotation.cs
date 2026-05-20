@@ -3,10 +3,10 @@ using UnityEngine;
 
 public class TurretRotation : MonoBehaviour
 {
-    [SerializeField] protected Transform m_shootPoint;
-    [SerializeField] private Transform m_gunTransform;
-    [SerializeField] private float m_maxYawSpeed = 30f;
-    [SerializeField] private float m_maxPitchSpeed = 30f;
+    private Transform m_shootPoint;
+    private Transform m_gunTransform;
+    private float m_maxYawSpeed;
+    private float m_maxPitchSpeed;
 
     private float m_actualYawSpeed;
     private float m_actualPitchSpeed;
@@ -18,7 +18,19 @@ public class TurretRotation : MonoBehaviour
     private void Awake()
     {
         m_transform = transform;
+    }
+
+    private void Start()
+    {
         StartCoroutine(RotationRoutine());
+    }
+
+    public void Init(Transform shootPoint, Transform gunTransform, float maxYawSpeed, float maxPitchSpeed)
+    {
+        m_shootPoint = shootPoint;
+        m_gunTransform = gunTransform;
+        m_maxYawSpeed = maxYawSpeed;
+        m_maxPitchSpeed = maxPitchSpeed;
     }
 
     public void RotateToDirection(Vector3 launchDirection, float rotationTime = -1)

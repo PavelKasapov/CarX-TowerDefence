@@ -5,16 +5,23 @@ using UnityEngine;
 public class TargetTracker : MonoBehaviour
 {
     [SerializeField] private SphereCollider m_rangeCollider;
-    [SerializeField] private float m_range = 4f;
 
+    private float m_range;
     private Transform m_transform;
     private List<Monster> m_monstersInRange = new();
-    public Monster CurrentTarget { get; private set; }
+
     public float m_Range => m_range;
     public event Action OnTargetChange;
+    public Monster CurrentTarget { get; private set; }
+
     private void Awake()
     {
         m_transform = transform;
+    }
+
+    public void Init(float range)
+    {
+        m_range = range;
         m_rangeCollider.radius = m_range;
     }
     
@@ -66,4 +73,13 @@ public class TargetTracker : MonoBehaviour
         CurrentTarget = closestMonster;
         OnTargetChange?.Invoke();
     }
+
+
+#if UNITY_EDITOR
+    private void OnDrawGizmos()
+    {
+        if (CurrentTarget != null)
+            Gizmos.DrawWireSphere(CurrentTarget.m_Transform.position, 1f);
+    }
+#endif
 }

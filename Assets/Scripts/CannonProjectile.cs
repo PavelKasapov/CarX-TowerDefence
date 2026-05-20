@@ -4,9 +4,9 @@ public class CannonProjectile : BaseProjectile
 {
     private Vector3 m_velocity;
 
-    public void Init(Vector3 velocity)
+    public void Init(Vector3 direction)
     {
-        m_velocity = velocity;
+        m_velocity = direction * m_speed;
     }
 
     protected override void Move()
