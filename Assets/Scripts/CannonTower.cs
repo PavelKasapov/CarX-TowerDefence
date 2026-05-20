@@ -15,6 +15,7 @@ public class CannonTower : BaseTower<CannonProjectile>
     {
         base.Awake();
         m_turretRotation ??= GetComponent<TurretRotation>();
+        m_ballisticAimSolver ??= GetComponent<BallisticAimSolver>();
         m_ballisticAimSolver.Init(m_shootPoint, m_gunTransform, m_yawSpeed, m_pitchSpeed, m_range);
         m_turretRotation.Init(m_shootPoint, m_gunTransform, m_yawSpeed, m_pitchSpeed);
         m_targetTracker.OnTargetChange += PrepareForNextShot;
